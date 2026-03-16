@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnapStudy</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #06080f;
+    --surface: #0d1117;
+    --card: #111827;
+    --border: #1f2937;
+    --accent: #f0ff44;
+    --accent2: #44ffe0;
+    --accent3: #ff6b6b;
+    --text: #f0f4ff;
+    --muted: #6b7280;
+    --green: #4ade80;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240,255,68,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,255,68,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  .blob-1 { width: 500px; height: 500px; background: #f0ff44; top: -200px; right: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: #44ffe0; bottom: -150px; left: -100px; }
+
+  /* Layout */
+  .shell {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* Header */
+  header {
+    padding: 32px 0 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .logo-mark {
+    width: 44px;
+    height: 44px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(240,255,68,0.4);
+  }
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-text span { color: var(--accent); }
+  .badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* Subject pills */
+  .subject-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .subject-pill {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+  }
+  .subject-pill:hover, .subject-pill.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(240,255,68,0.06);
+  }
+
+  /* Input area */
+  .input-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .input-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea::placeholder { color: var(--muted); }
+  textarea:focus { border-color: rgba(240,255,68,0.5); }
+
+  /* Action row */
+  .action-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: #06080f;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(240,255,68,0.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-secondary {
+    padding: 12px 18px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+
+  .char-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Answer area */
+  #answer-area { display: none; }
+  #answer-area.visible { display: block; animation: fadeUp 0.3s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .answer-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .answer-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent2);
+  }
+  .answer-meta {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .answer-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    line-height: 1.75;
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .answer-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), transparent);
+  }
+
+  /* Thinking indicator */
+  .thinking {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dots { display: flex; gap: 5px; }
+  .dots span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40%           { opacity: 1;   transform: scale(1); }
+  }
+
+  /* Rendered markdown */
+  .answer-body h1, .answer-body h2, .answer-body h3 {
+    font-family: 'Syne', sans-serif;
+    color: var(--accent);
+    margin: 16px 0 8px;
+    font-weight: 700;
+  }
+  .answer-body h1 { font-size: 20px; }
+  .answer-body h2 { font-size: 17px; }
+  .answer-body h3 { font-size: 15px; color: var(--accent2); }
+  .answer-body p  { margin: 10px 0; }
+  .answer-body ul, .answer-body ol { padding-left: 20px; margin: 10px 0; }
+  .answer-body li { margin: 6px 0; }
+  .answer-body code {
+    background: rgba(240,255,68,0.08);
+    border: 1px solid rgba(240,255,68,0.15);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .answer-body pre {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+  .answer-body pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent2);
+  }
+  .answer-body strong { color: var(--text); font-weight: 600; }
+  .answer-body em { color: var(--accent2); }
+  .answer-body blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+    margin: 12px 0;
+    color: var(--muted);
+  }
+  .answer-body hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
+  /* Copy btn */
+  .copy-btn {
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Error */
+  .error-msg {
+    color: var(--accent3);
+    font-size: 13px;
+    padding: 12px 16px;
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 8px;
+  }
+
+  /* Footer */
+  .footer-note {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 48px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="shell">
+  <header>
+    <div class="logo-mark">📚</div>
+    <div class="logo-text">Snap<span>Study</span></div>
+    <div class="badge">LITE</div>
+  </header>
+
+  <main>
+    <div class="subject-row" id="subjects">
+      <button class="subject-pill active" data-subject="">✦ Any Subject</button>
+      <button class="subject-pill" data-subject="math">∑ Math</button>
+      <button class="subject-pill" data-subject="science">⚗ Science</button>
+      <button class="subject-pill" data-subject="history">📜 History</button>
+      <button class="subject-pill" data-subject="english">✍ English</button>
+      <button class="subject-pill" data-subject="coding">{ } Coding</button>
+      <button class="subject-pill" data-subject="economics">📈 Economics</button>
+    </div>
+
+    <div class="input-wrap">
+      <span class="input-label">Your Question</span>
+      <textarea
+        id="question"
+        placeholder="Paste your homework question here... e.g. 'Explain the difference between mitosis and meiosis' or 'Solve: 3x² + 2x - 5 = 0'"
+        oninput="updateCount()"
+      ></textarea>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="solveBtn" onclick="solve()">
+        <span>⚡</span> Get Help
+      </button>
+      <button class="btn-secondary" onclick="clear_all()">Clear</button>
+      <span class="char-count" id="charCount">0 chars</span>
+    </div>
+
+    <div id="answer-area">
+      <div class="answer-header">
+        <span class="answer-label">✦ Answer</span>
+        <span class="answer-meta" id="answerMeta"></span>
+      </div>
+      <div class="answer-card" id="answerCard">
+        <div class="thinking" id="thinking">
+          <div class="dots"><span></span><span></span><span></span></div>
+          Analysing your question...
+        </div>
+        <div class="answer-body" id="answerBody"></div>
+      </div>
+      <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyAnswer()">⎘ Copy Answer</button>
+    </div>
+
+    <p class="footer-note">Powered by Claude · Use answers as a learning aid, not a shortcut</p>
+  </main>
+</div>
+
+<script>
+  let activeSubject = '';
+  let startTime;
+
+  // Subject pills
+  document.querySelectorAll('.subject-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.subject-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeSubject = pill.dataset.subject;
+    });
+  });
+
+  function updateCount() {
+    const len = document.getElementById('question').value.length;
+    document.getElementById('charCount').textContent = len + ' chars';
+  }
+
+  function clear_all() {
+    document.getElementById('question').value = '';
+    document.getElementById('charCount').textContent = '0 chars';
+    const area = document.getElementById('answer-area');
+    area.classList.remove('visible');
+    setTimeout(() => { area.style.display = 'none'; }, 300);
+  }
+
+  function copyAnswer() {
+    const text = document.getElementById('answerBody').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = '⎘ Copy Answer', 2000);
+    });
+  }
+
+  // Basic markdown → HTML renderer
+  function renderMarkdown(md) {
+    let html = md
+      // Code blocks
+      .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+        `<pre><code>${escHtml(code.trim())}</code></pre>`)
+      // Inline code
+      .replace(/`([^`]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`)
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // H3
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      // H2
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      // H1
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // HR
+      .replace(/^---$/gm, '<hr>')
+      // Blockquote
+      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+      // Ordered list items
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Unordered list items
+      .replace(/^[*-] (.+)$/gm, '<li>$1</li>')
+      // Paragraphs (double newline)
+      .replace(/\n\n(?!<)/g, '</p><p>')
+      // Single newlines (not inside tags)
+      .replace(/\n(?!<)/g, '<br>');
+
+    // Wrap loose <li> in <ul>
+    html = html.replace(/(<li>[\s\S]+?<\/li>)(?!\s*<li>)/g, '<ul>$1</ul>');
+
+    return '<p>' + html + '</p>';
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function solve() {
+    const question = document.getElementById('question').value.trim();
+    if (!question) {
+      document.getElementById('question').focus();
+      return;
+    }
+
+    // Show answer area
+    const area = document.getElementById('answer-area');
+    area.style.display = 'block';
+    setTimeout(() => area.classList.add('visible'), 10);
+
+    // Reset state
+    document.getElementById('thinking').style.display = 'flex';
+    document.getElementById('answerBody').innerHTML = '';
+    document.getElementById('answerBody').style.display = 'none';
+    document.getElementById('copyBtn').style.display = 'none';
+    document.getElementById('answerMeta').textContent = '';
+    document.getElementById('solveBtn').disabled = true;
+    startTime = Date.now();
+
+    // Scroll to answer
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Build system prompt
+    const subjectHint = activeSubject
+      ? `The student is asking about ${activeSubject}. `
+      : '';
+    const systemPrompt = `You are a brilliant, patient tutor. ${subjectHint}Your job is to help students understand — not just give answers. Structure your response clearly:
+- Start with a brief direct answer
+- Then explain the concept or working step-by-step
+- Use examples where helpful
+- End with a one-line takeaway or tip if appropriate
+Use markdown for formatting (headers, bold, code blocks, lists). Keep it clear and educational. Don't be preachy.`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: question }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.error) throw new Error(data.error.message);
+
+      const rawText = data.content?.map(b => b.text || '').join('') || '';
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      document.getElementById('thinking').style.display = 'none';
+      const body = document.getElementById('answerBody');
+      body.style.display = 'block';
+      body.innerHTML = renderMarkdown(rawText);
+      document.getElementById('answerMeta').textContent = `${elapsed}s · ${rawText.length} chars`;
+      document.getElementById('copyBtn').style.display = 'inline-block';
+
+    } catch (err) {
+      document.getElementById('thinking').style.display = 'none';
+      document.getElementById('answerBody').style.display = 'block';
+      document.getElementById('answerBody').innerHTML =
+        `<div class="error-msg">⚠ Something went wrong: ${escHtml(err.message)}</div>`;
+    } finally {
+      document.getElementById('solveBtn').disabled = false;
+    }
+  }
+
+  // Allow Ctrl+Enter to submit
+  document.getElementById('question').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) solve();
+  });
+</script>
+</body>
+</html>
